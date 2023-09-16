@@ -19,7 +19,6 @@
 			border: 6px solid #59e4ff;
 			border-radius: 50%;
 			width: 600px; height: 600px;
-			/* animation: shrink 1s linear; */
 		}
 		.circle.bad .outer {
 			border-color: red;
@@ -71,16 +70,6 @@
 			font-weight: bold;
 			padding: 20px;
 		}
-
-		@keyframes fadeOut {
-			from {
-				opacity: 1;
-			}
-
-			to {
-				opacity: 0;
-			}
-		}
 		@keyframes fadeOutScale {
 			from {
 				opacity: 1;
@@ -97,11 +86,6 @@
 	</style>
 </head>
 <body>
-	<!-- <div class="circle">
-		<div class="outer"></div>
-		<div class="inner"></div>
-	</div> -->
-	<!-- <div id="score">Perfect: <span id="score_perfect">0</span><br />Bad: <span id="score_bad">0</span></div> -->
 	<script>
 		function getRandomInt(min, max) {
 			min = Math.ceil(min);
@@ -122,9 +106,6 @@
 				this.currentSize;
 				this.duration = 1500;
 				this.progress;
-				// this.failTimer = setTimeout(() => {
-				// 	this.end("bad");
-				// }, this.duration);
 
 				this.top = y;
 				this.left = x;
@@ -175,15 +156,12 @@
 				if (result == "perfect") {
 					this.wrapper.classList.add("perfect");
 					this.result.textContent = "Perfect";
-					// score_perfect++;
 					helper.up_perfect();
 				} else {
 					this.wrapper.classList.add("bad");
 					this.result.textContent = "Bad";
-					// score_bad++;
 					helper.up_bad();
 				}
-				// this.wrapper.style.animation = "fadeOut 0.5s";
 				setTimeout(() => {
 					this.wrapper.style.transition = "opacity 0.5s";
 					this.wrapper.style.opacity = "0";
@@ -233,7 +211,12 @@
 
 				this.circles = [];
 
-				this.next();
+				setTimeout(() => {
+					this.next();
+					setInterval(() => {
+						this.next();
+					}, 5800);
+				}, 1000);
 				this.setKeydown();
 			}
 
@@ -244,7 +227,7 @@
 						this.newCircle();
 					}, 250);
 				}
-				setTimeout(() => { this.next(); }, 5800);
+				// setTimeout(() => { this.next(); }, 5800);
 			}
 
 			newCircle() {

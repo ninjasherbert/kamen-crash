@@ -6,22 +6,14 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>카멘 격돌 연습</title>
 	<style>
-		html, body { padding: 0; margin: 0; background-color: grey; }
+		html, body { padding: 0; margin: 0; background-color: grey; overflow: hidden; }
 		.circle { position: absolute; top: 50%; left: 50%; width: 600px; height: 600px; }
 		.circle > div { position: absolute; top: 0; left: 0; transform: translate(-50%, -50%); }
 		.circle .inner {
-			/* border: 18px solid #59e4ff;
-			border-radius: 100%; */
 			width: 300px;
 			height: 300px;
 			border: 18px solid #7fffff;
 			border-radius: 50%;
-			/* background-image: linear-gradient(transparent, transparent), linear-gradient(140deg, rgba(127,255,255,1) 0%, rgba(248,255,255,1) 50%, rgba(127,255,255,1) 100%);
-			background-origin: border-box;
-			background-clip: content-box, border-box; */
-			
-			/* background: rgb(127,255,255);
-			background: linear-gradient(140deg, rgba(127,255,255,1) 0%, rgba(248,255,255,1) 100%); */
 		}
 		.circle .outer {
 			border: 6px solid #59e4ff;
@@ -109,35 +101,33 @@
 		<div class="outer"></div>
 		<div class="inner"></div>
 	</div> -->
-	<div id="score">Perfect: <span id="score_perfect">0</span><br />Bad: <span id="score_bad">0</span></div>
+	<!-- <div id="score">Perfect: <span id="score_perfect">0</span><br />Bad: <span id="score_bad">0</span></div> -->
 	<script>
-		let score_perfect = 0;
-		let score_bad = 0;
-
-		function updateScore() {
-			document.getElementById("score_perfect").textContent = score_perfect;
-			document.getElementById("score_bad").textContent = score_bad;
-		}
-
 		function getRandomInt(min, max) {
 			min = Math.ceil(min);
 			max = Math.floor(max);
 			return Math.floor(Math.random() * (max - min + 1)) + min;
 		}
 
+		function calculateDistance(x1, y1, x2, y2) {
+			const deltaX = x2 - x1;
+			const deltaY = y2 - y1;
+			return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+		}
+
 		class Circle {
-			constructor() {
+			constructor(x, y) {
 				this.play = true;
 				this.size = 600;
 				this.currentSize;
 				this.duration = 1500;
 				this.progress;
-				this.failTimer = setTimeout(() => {
-					this.end("bad");
-				}, this.duration);
+				// this.failTimer = setTimeout(() => {
+				// 	this.end("bad");
+				// }, this.duration);
 
-				const x = getRandomInt(this.size, window.innerWidth - this.size);
-				const y = getRandomInt(this.size, window.innerHeight - this.size);
+				this.top = y;
+				this.left = x;
 
 				this.wrapper = document.createElement("div");
 				this.wrapper.classList.add("circle");
@@ -145,25 +135,18 @@
 				this.inner.classList.add("inner");
 				this.outer = document.createElement("div");
 				this.outer.classList.add("outer");
-				this.key = document.createElement("div");
-				this.key.classList.add("key");
-				this.wrapper.append(this.inner, this.outer, this.key);
-				this.wrapper.style.top = y + "px";
-				this.wrapper.style.left = x + "px";
+				this.key_wrapper = document.createElement("div");
+				this.key_wrapper.classList.add("key");
+				this.wrapper.append(this.inner, this.outer, this.key_wrapper);
+				this.wrapper.style.top = this.top + "px";
+				this.wrapper.style.left = this.left + "px";
 				document.body.append(this.wrapper);
-				this.animate();
-				this.setKeydown();
-			}
 
-			setKeydown() {
 				const keys = ['Q', 'W', 'E', 'R', 'A', 'S', 'D', 'F'];
-				const randomKey = keys[Math.floor(Math.random() * keys.length)];
-				this.key.textContent = randomKey;
-				document.addEventListener('keydown', (event) => {
-					if (event.key.toUpperCase() === randomKey) {
-						this.catch();
-					}
-				});
+				this.key = keys[getRandomInt(0, keys.length - 1)];
+				this.key_wrapper.textContent = this.key;
+
+				this.animate();
 			}
 
 			catch() {
@@ -177,8 +160,13 @@
 			}
 
 			end(result = "bad") {
+				if (!this.play) return;
 				this.play = false;
 				clearTimeout(this.failTimer);
+
+				for (const ci in helper.circles) {
+					if (helper.circles[ci] == this) helper.circles.splice(ci, 1);
+				}
 
 				this.result = document.createElement("div");
 				this.result.classList.add("result");
@@ -187,13 +175,14 @@
 				if (result == "perfect") {
 					this.wrapper.classList.add("perfect");
 					this.result.textContent = "Perfect";
-					score_perfect++;
+					// score_perfect++;
+					helper.up_perfect();
 				} else {
 					this.wrapper.classList.add("bad");
 					this.result.textContent = "Bad";
-					score_bad++;
+					// score_bad++;
+					helper.up_bad();
 				}
-				updateScore();
 				// this.wrapper.style.animation = "fadeOut 0.5s";
 				setTimeout(() => {
 					this.wrapper.style.transition = "opacity 0.5s";
@@ -219,58 +208,88 @@
 				this.animationId = requestAnimationFrame((timestamp) => this.shrink(timestamp));
 			}
 		}
+		
 
-		setTimeout(() => {
-			new Circle();
-			setInterval(() => {
-				new Circle();
+		class CrashHelper {
+			constructor() {
+				this.score_perfect = 0;
+				this.score_bad = 0;
+
+				this.$score = document.createElement("div");
+				this.$score.setAttribute("id", "score");
+
+				this.$score_perfect_wrapper = document.createElement("div");
+				this.$score_perfect = document.createElement("span");
+				this.$score_perfect_wrapper.append("Perfect: ", this.$score_perfect);
+				this.$score_perfect.textContent = 0;
+				this.$score_bad_wrapper = document.createElement("div");
+				this.$score_bad = document.createElement("span");
+				this.$score_bad_wrapper.append("Bad: ", this.$score_bad);
+				this.$score_bad.textContent = 0;
+
+				this.$score.append(this.$score_perfect_wrapper, this.$score_bad_wrapper);
+
+				document.body.append(this.$score);
+
+				this.circles = [];
+
+				this.next();
+				this.setKeydown();
+			}
+
+			next() {
+				this.newCircle();
 				if (getRandomInt(0, 2) == 0) {
 					setTimeout(() => {
-						new Circle();
+						this.newCircle();
 					}, 250);
 				}
-			}, 5800);
-		}, 1000);
+				setTimeout(() => { this.next(); }, 5800);
+			}
 
-		// setTimeout(() => {
-		// 	new Circle(900, 900);
-		// }, 1000);
-		// function makeCircle(x = 0, y = 0) {
-		// 	const circle = document.createElement("div");
-		// 	circle.classList.add("circle");
-		// 	const outer = document.createElement("div");
-		// 	outer.classList.add("outer");
-		// 	const inner = document.createElement("div");
-		// 	inner.classList.add("inner");
-		// 	circle.append(outer, inner);
-		// 	circle.style.x = x + "px";
-		// 	circle.style.y = y + "px";
-		// 	document.body.append(circle);
-		// 	outer.style.animation = "shrink 1s linear";
-		// 	setTimeout(() => {
-		// 		circle.classList.add("bad");
-		// 	}, 500);
-		// }
-		// setInterval(() => {
-		// 	console.log("A");
-		// 	makeCircle(900, 900);
-		// }, 5800);
-		// setTimeout(() => {
-		// 	makeCircle(900, 900);
-		// }, 100);
-		// setTimeout(() => {
-		// 	const co = document.querySelector(".circle .outer");
-		// }, 1000);
-		// function makeCircle(x, y) {
-		// 	const innerCircle = 
-		// }
-		// const co = document.querySelector(".circle .outer");
-		// console.log(co);
-		// setInterval(() => {
-		// 	console.log("A");
-		// 	const co = document.querySelector(".circle .outer");
-		// 	co.style.width = co.style.width.replace("px", "") * 1 - 10 + "px";
-		// }, 100);
+			newCircle() {
+
+				let x = getRandomInt(600, window.innerWidth - 600);
+				let y = getRandomInt(600, window.innerHeight - 600);
+				const prevCircle = this.circles[0];
+				if (prevCircle) {
+					while (calculateDistance(x, y, prevCircle.left, prevCircle.top) < 500) {
+						x = getRandomInt(600, window.innerWidth - 600);
+						y = getRandomInt(600, window.innerHeight - 600);
+					}
+				}
+				const circle = new Circle(x, y);
+				this.circles.push(circle);
+				circle.failTimer = setTimeout(() => {
+					circle.end("bad");
+				}, circle.duration);
+			}
+
+			setKeydown() {
+				const keys = ['Q', 'W', 'E', 'R', 'A', 'S', 'D', 'F'];
+				document.addEventListener('keydown', (event) => {
+					if (!this.circles.length) return;
+					const pressedKey = event.key.toUpperCase();
+					const nextCircle = this.circles[0];
+					if (keys.includes(pressedKey)) {
+						if (nextCircle.key == pressedKey) nextCircle.catch();
+						else nextCircle.end("bad");
+					}
+				});
+			}
+
+			up_perfect() {
+				this.score_perfect++;
+				this.$score_perfect.textContent = this.score_perfect;
+			}
+
+			up_bad() {
+				this.score_bad++;
+				this.$score_bad.textContent = this.score_bad;
+			}
+		}
+
+		const helper = new CrashHelper();
 	</script>
 </body>
 </html>

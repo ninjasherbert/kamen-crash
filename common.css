@@ -1,0 +1,96 @@
+html, body { padding: 0; margin: 0; background-color: grey; }
+.circle { position: absolute; top: 50%; left: 50%; width: 600px; height: 600px; }
+.circle > div { position: absolute; top: 0; left: 0; transform: translate(-50%, -50%); }
+.circle .inner {
+	/* border: 18px solid #59e4ff;
+	border-radius: 100%; */
+	width: 300px;
+	height: 300px;
+	border: 18px solid #7fffff;
+	border-radius: 50%;
+	/* background-image: linear-gradient(transparent, transparent), linear-gradient(140deg, rgba(127,255,255,1) 0%, rgba(248,255,255,1) 50%, rgba(127,255,255,1) 100%);
+	background-origin: border-box;
+	background-clip: content-box, border-box; */
+	
+	/* background: rgb(127,255,255);
+	background: linear-gradient(140deg, rgba(127,255,255,1) 0%, rgba(248,255,255,1) 100%); */
+}
+.circle .outer {
+	border: 6px solid #59e4ff;
+	border-radius: 50%;
+	width: 600px; height: 600px;
+	/* animation: shrink 1s linear; */
+}
+.circle.bad .outer {
+	border-color: red;
+}
+.circle.perfect .outer {
+	border-color: #e3b274;
+}
+.circle.perfect:before {
+	display: block;
+	content: "";
+	position: absolute; top: 0; left: 0; transform: translate(-50%, -50%);
+	border: 10px solid #e3b274;
+	border-radius: 50%;
+	width: 300px; height: 300px;
+	animation: fadeOutScale 0.5s;
+}
+
+.circle .key {
+	background-color: #f4e7c6;
+	color: #7d5a1c;
+	font-weight: bold;
+	border-radius: 10px;
+	width: 60px;
+	height: 60px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	font-size: 34px;
+}
+.circle.bad .result {
+	text-shadow: 0px 0px 5px red,0px 0px 10px red,0px 0px 15px red;
+}
+.circle.perfect .result {
+	text-shadow: 0px 0px 5px rgba(125, 90, 28, 1),0px 0px 10px rgba(125, 90, 28, 1),0px 0px 15px rgba(125, 90, 28, 1);
+}
+.circle .result {
+	color: white;
+	top: 170px;
+	transform: translate(-50%, -50%);
+	font-weight: bold;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	font-size: 54px;
+}
+
+#score {
+	font-size: 24px;
+	font-weight: bold;
+	padding: 20px;
+}
+
+@keyframes fadeOut {
+	from {
+		opacity: 1;
+	}
+
+	to {
+		opacity: 0;
+	}
+}
+@keyframes fadeOutScale {
+	from {
+		opacity: 1;
+		width: 300px;
+		height: 300px;
+	}
+
+	to {
+		opacity: 0;
+		width: 500px;
+		height: 500px;
+	}
+}

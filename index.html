@@ -7,6 +7,35 @@
 	<title>카멘 격돌 연습</title>
 	<style>
 		html, body { padding: 0; margin: 0; background-color: grey; overflow: hidden; }
+
+		div { box-sizing: border-box; }
+		.beat { position: absolute; width: 600px; height: 600px; }
+		.beat > *, .beat:before { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); transition: border-color 0.1s; }
+		.beat:before { display: block; content: ""; }
+		.beat .inner { width: 50%; height: 50%; border: 18px solid #7fffff; border-radius: 50%; }
+		.beat .outer { width: 100%; height: 100%; border: 6px solid #59e4ff; border-radius: 50%; }
+		.beat .key { width: 60px; height: 60px; background-color: #f4e7c6; color: #7d5a1c; font-weight: bold; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 34px; }
+		.beat .result { color: white; top: 50%; padding-top: 50%; font-weight: bold; display: flex; justify-content: center; align-items: center; font-size: 54px; }
+		
+		.beat.bad .result { text-shadow: 0px 0px 5px red,0px 0px 10px red,0px 0px 15px red; }
+		.beat.bad .inner { border-color: rgb(206, 98, 98); }
+		.beat.bad .outer { border-color: red; }
+
+		.beat.good .result { text-shadow: 0px 0px 5px #7fffff,0px 0px 10px #7fffff,0px 0px 15px #7fffff; }
+		.beat.good:before { border: 10px solid #59e4ff; border-radius: 50%; width: 50%; height: 50%; animation: fadeOutScale 0.5s normal forwards; }
+
+		.beat.perfect .result { text-shadow: 0px 0px 5px rgba(125, 90, 28, 1),0px 0px 10px rgba(125, 90, 28, 1),0px 0px 15px rgba(125, 90, 28, 1); }
+		.beat.perfect .inner { border-color: #e2a555; }
+		.beat.perfect .outer { border-color: #e3b274; }
+		.beat.perfect:before { border: 10px solid #e3b274; border-radius: 50%; width: 50%; height: 50%; animation: fadeOutScale 0.5s normal forwards; }
+
+
+		.score { position: absolute; top: 0; left: 0; font-size: 24px; padding: 20px; }
+		.score > * { display: flex; }
+		.score .label { width: 120px; text-align: right; padding-right: 20px; }
+		.score .count { font-weight: bold; }
+		
+
 		.circle { position: absolute; top: 50%; left: 50%; width: 600px; height: 600px; }
 		.circle > div { position: absolute; top: 0; left: 0; transform: translate(-50%, -50%); }
 		.circle .inner {
@@ -86,7 +115,14 @@
 	</style>
 </head>
 <body>
+	<!-- <div class="beat">
+		<div class="inner"></div>
+		<div class="outer"></div>
+	</div> -->
 	<script>
+		const KEYS = ['Q', 'W', 'E', 'R', 'A', 'S', 'D', 'F'];
+		const SIZE = 600;
+
 		function getRandomInt(min, max) {
 			min = Math.ceil(min);
 			max = Math.floor(max);
@@ -99,117 +135,110 @@
 			return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 		}
 
-		class Circle {
-			constructor(x, y) {
-				this.play = true;
-				this.size = 600;
-				this.currentSize;
-				this.duration = 1500;
-				this.progress;
+		class Beat {
+			constructor(top, left) {
+				this.playing = true;
+				this.size = 100;
+				this.startTimestamp = null;
+				this.key = KEYS[getRandomInt(0, KEYS.length - 1)];
 
-				this.top = y;
-				this.left = x;
+				// console.log("New Beat", top, left);
+				this.top = top;
+				this.left = left;
 
-				this.wrapper = document.createElement("div");
-				this.wrapper.classList.add("circle");
-				this.inner = document.createElement("div");
-				this.inner.classList.add("inner");
-				this.outer = document.createElement("div");
-				this.outer.classList.add("outer");
-				this.key_wrapper = document.createElement("div");
-				this.key_wrapper.classList.add("key");
-				this.wrapper.append(this.inner, this.outer, this.key_wrapper);
-				this.wrapper.style.top = this.top + "px";
-				this.wrapper.style.left = this.left + "px";
-				document.body.append(this.wrapper);
+				this.elements = {
+					beat: Object.assign(document.createElement("div"), {className: "beat"}),
+					inner: Object.assign(document.createElement("div"), {className: "inner"}),
+					outer: Object.assign(document.createElement("div"), {className: "outer"}),
+					key: Object.assign(document.createElement("div"), {className: "key"}),
+				};
 
-				const keys = ['Q', 'W', 'E', 'R', 'A', 'S', 'D', 'F'];
-				this.key = keys[getRandomInt(0, keys.length - 1)];
-				this.key_wrapper.textContent = this.key;
-
-				this.animate();
+				this.elements.beat.style.top = this.top + "px";
+		 		this.elements.beat.style.left = this.left + "px";
+				this.elements.key.textContent = this.key;
+				this.elements.beat.append(this.elements.inner, this.elements.outer, this.elements.key);
+				document.body.append(this.elements.beat);
 			}
 
-			catch() {
-				if (!this.play) return;
+			end(result) {
+				this.playing = false;
 
-				if (this.currentSize <= 350 && this.currentSize >= 280) {
-					this.end("perfect");
-				} else {
-					this.end("bad");
-				}
-			}
+				const resultElement = Object.assign(document.createElement("div"), {className: "result"});
+				resultElement.textContent = result;
+				this.elements.beat.classList.add(result.toLowerCase());
+				this.elements.beat.append(resultElement);
 
-			end(result = "bad") {
-				if (!this.play) return;
-				this.play = false;
-				clearTimeout(this.failTimer);
-
-				for (const ci in helper.circles) {
-					if (helper.circles[ci] == this) helper.circles.splice(ci, 1);
-				}
-
-				this.result = document.createElement("div");
-				this.result.classList.add("result");
-				this.wrapper.append(this.result);
-
-				if (result == "perfect") {
-					this.wrapper.classList.add("perfect");
-					this.result.textContent = "Perfect";
-					helper.up_perfect();
-				} else {
-					this.wrapper.classList.add("bad");
-					this.result.textContent = "Bad";
-					helper.up_bad();
-				}
 				setTimeout(() => {
-					this.wrapper.style.transition = "opacity 0.5s";
-					this.wrapper.style.opacity = "0";
+					this.elements.beat.style.transition = "opacity 0.5s";
+					this.elements.beat.style.opacity = "0";
 				}, 500);
 				setTimeout(() => {
-					this.wrapper.remove();
+					this.elements.beat.remove();
 				}, 1000);
 			}
 
-			shrink(timestamp) {
-				if (!this.play) return;
-				if (!this.startTimestamp) this.startTimestamp = timestamp;
-				this.progress = (timestamp - this.startTimestamp) / this.duration;
-    			this.currentSize = this.size - (this.size * Math.min(this.progress, 1));
-				this.outer.style.width = this.currentSize + "px";
-				this.outer.style.height = this.currentSize + "px";
-				if (this.progress < 1) {
-					this.animationId = requestAnimationFrame((timestamp) => this.shrink(timestamp));
-			    }
+			bad() {
+				this.end("Bad");
 			}
-			animate() {
-				this.animationId = requestAnimationFrame((timestamp) => this.shrink(timestamp));
+			good() {
+				this.end("Good");
 			}
+			perfect() {
+				this.end("Perfect");
+			}
+
+			// nextFrame(timestamp) {
+			// 	// console.log("Beat nextFrame", timestamp);
+			// 	if (!this.startTimestamp) this.startTimestamp = timestamp;
+			// 	const progress = (timestamp - this.startTimestamp) / 1500;
+			// 	this.size = 100 - (100 * Math.min(progress, 1));
+			// 	console.log("size", this.size);
+			// 	this.elements.outer.style.width = this.size + "%";
+			// 	this.elements.outer.style.height = this.size + "%";
+			// }
 		}
-		
-
-		class CrashHelper {
+		class Helper {
 			constructor() {
-				this.score_perfect = 0;
-				this.score_bad = 0;
+				this.playing = true;
+				this.beats = [];
+				this.animate();
 
-				this.$score = document.createElement("div");
-				this.$score.setAttribute("id", "score");
+				document.addEventListener('keydown', (event) => { this.onKeydown(event); });
 
-				this.$score_perfect_wrapper = document.createElement("div");
-				this.$score_perfect = document.createElement("span");
-				this.$score_perfect_wrapper.append("Perfect: ", this.$score_perfect);
-				this.$score_perfect.textContent = 0;
-				this.$score_bad_wrapper = document.createElement("div");
-				this.$score_bad = document.createElement("span");
-				this.$score_bad_wrapper.append("Bad: ", this.$score_bad);
-				this.$score_bad.textContent = 0;
+				this.score = {
+					perfect: 0,
+					good: 0,
+					bad: 0,
+				};
+				this.elements = {
+					wrap: Object.assign(document.createElement("div"), {className: "score"}),
+					bad: Object.assign(document.createElement("div"), {className: "bad"}),
+					good: Object.assign(document.createElement("div"), {className: "good"}),
+					perfect: Object.assign(document.createElement("div"), {className: "perfect"}),
+					
+					count_bad: Object.assign(document.createElement("span"), {className: "count", textContent: 0}),
+					count_good: Object.assign(document.createElement("span"), {className: "count", textContent: 0}),
+					count_perfect: Object.assign(document.createElement("span"), {className: "count", textContent: 0}),
+				};
 
-				this.$score.append(this.$score_perfect_wrapper, this.$score_bad_wrapper);
+				this.elements.bad.append(Object.assign(document.createElement("div"), {className: "label", textContent: "Bad"}), this.elements.count_bad);
+				this.elements.good.append(Object.assign(document.createElement("div"), {className: "label", textContent: "Good"}), this.elements.count_good);
+				this.elements.perfect.append(Object.assign(document.createElement("div"), {className: "label", textContent: "Perfect"}), this.elements.count_perfect);
+				this.elements.wrap.append(this.elements.perfect, this.elements.good, this.elements.bad);
+				document.body.append(this.elements.wrap);
 
-				document.body.append(this.$score);
+				// 	if (!this.circles.length) return;
+				// 	const pressedKey = event.key.toUpperCase();
+				// 	const nextCircle = this.circles[0];
+				// 	if (keys.includes(pressedKey)) {
+				// 		if (nextCircle.key == pressedKey) nextCircle.catch();
+				// 		else nextCircle.end("bad");
+				// 	}
+				// });
 
-				this.circles = [];
+				// setTimeout(() => {
+				// 	this.beats.push(new Beat(300, 300));
+				// }, 1000);
 
 				setTimeout(() => {
 					this.next();
@@ -217,62 +246,296 @@
 						this.next();
 					}, 5800);
 				}, 1000);
-				this.setKeydown();
+			}
+
+			updateScore() {
+				this.elements.count_perfect.textContent = this.score.perfect;
+				this.elements.count_good.textContent = this.score.good;
+				this.elements.count_bad.textContent = this.score.bad;
+			}
+
+			onKeydown(event) {
+				// console.log("onKeyDown");
+				if (!this.beats.length) return;
+				const pressedKey = event.key.toUpperCase();
+				const beat = this.getCurrentBeat();
+				if (!beat) return;
+				if (KEYS.includes(pressedKey)) {
+					// console.log("onKeyDown includes", beat.key, pressedKey, beat.size);
+					if (beat.key == pressedKey) {
+						if (beat.size <= 55 && beat.size >= 47) {
+							beat.perfect();
+							this.score.perfect++;
+							this.updateScore();
+							return;
+						} else if (beat.size <= 60 && beat.size >= 45) {
+							beat.good();
+							this.score.good++;
+							this.updateScore();
+							return;
+						} else {
+							beat.bad();
+							this.score.bad++;
+							this.updateScore();
+							return;
+						}
+					}
+					beat.bad();
+					this.score.bad++;
+					this.updateScore();
+					return;
+				}
+			}
+
+			getCurrentBeat() {
+				for (const beat of this.beats) {
+					if (beat.playing) return beat;
+				}
+				return null;
 			}
 
 			next() {
-				this.newCircle();
+				this.newBeat();
 				if (getRandomInt(0, 2) == 0) {
 					setTimeout(() => {
-						this.newCircle();
+						this.newBeat();
 					}, 250);
 				}
-				// setTimeout(() => { this.next(); }, 5800);
 			}
 
-			newCircle() {
-
-				let x = getRandomInt(600, window.innerWidth - 600);
-				let y = getRandomInt(600, window.innerHeight - 600);
-				const prevCircle = this.circles[0];
-				if (prevCircle) {
-					while (calculateDistance(x, y, prevCircle.left, prevCircle.top) < 500) {
-						x = getRandomInt(600, window.innerWidth - 600);
-						y = getRandomInt(600, window.innerHeight - 600);
+			newBeat() {
+				let top = getRandomInt(0, window.innerHeight - SIZE);
+				let left = getRandomInt(0, window.innerWidth - SIZE);
+				const prevBeat = this.getCurrentBeat();
+				if (prevBeat) {
+					while (calculateDistance(top, left, prevBeat.top, prevBeat.left) < SIZE * 0.9) {
+						top = getRandomInt(0, window.innerHeight - SIZE);
+						left = getRandomInt(0, window.innerWidth - SIZE);
 					}
 				}
-				const circle = new Circle(x, y);
-				this.circles.push(circle);
-				circle.failTimer = setTimeout(() => {
-					circle.end("bad");
-				}, circle.duration);
+				const beat = new Beat(top, left);
+				this.beats.push(beat);
 			}
 
-			setKeydown() {
-				const keys = ['Q', 'W', 'E', 'R', 'A', 'S', 'D', 'F'];
-				document.addEventListener('keydown', (event) => {
-					if (!this.circles.length) return;
-					const pressedKey = event.key.toUpperCase();
-					const nextCircle = this.circles[0];
-					if (keys.includes(pressedKey)) {
-						if (nextCircle.key == pressedKey) nextCircle.catch();
-						else nextCircle.end("bad");
+			nextFrame(timestamp) {
+				// console.log("Helper nextFrame", timestamp);
+				for (const beatIdx in this.beats) {
+					// beat.nextFrame(timestamp);
+					const beat = this.beats[beatIdx];
+					if (!beat.playing) continue;
+					if (!beat.startTimestamp) beat.startTimestamp = timestamp;
+					const progress = (timestamp - beat.startTimestamp) / 1500;
+					beat.size = 100 - (100 * progress);
+					beat.elements.outer.style.width = beat.size + "%";
+					beat.elements.outer.style.height = beat.size + "%";
+
+					if (beat.size <= 0) {
+						beat.bad();
+						this.beats.splice(beatIdx, 1);
 					}
-				});
+				}
+				this.animate();
+			}
+			animate() {
+				if (!this.playing) return;
+				this.animationId = requestAnimationFrame((timestamp) => { this.nextFrame(timestamp); });
 			}
 
-			up_perfect() {
-				this.score_perfect++;
-				this.$score_perfect.textContent = this.score_perfect;
+			play() {
+				this.playing = true;
+				this.animate();
 			}
 
-			up_bad() {
-				this.score_bad++;
-				this.$score_bad.textContent = this.score_bad;
-			}
 		}
 
-		const helper = new CrashHelper();
+		const BeatHelper = new Helper();
+		
+		// function getRandomInt(min, max) {
+		// 	min = Math.ceil(min);
+		// 	max = Math.floor(max);
+		// 	return Math.floor(Math.random() * (max - min + 1)) + min;
+		// }
+
+		// function calculateDistance(x1, y1, x2, y2) {
+		// 	const deltaX = x2 - x1;
+		// 	const deltaY = y2 - y1;
+		// 	return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+		// }
+
+		// class Circle {
+		// 	constructor(x, y) {
+		// 		this.play = true;
+		// 		this.size = 600;
+		// 		this.currentSize;
+		// 		this.duration = 1500;
+		// 		this.progress;
+
+		// 		this.top = y;
+		// 		this.left = x;
+
+		// 		this.wrapper = document.createElement("div");
+		// 		this.wrapper.classList.add("circle");
+		// 		this.inner = document.createElement("div");
+		// 		this.inner.classList.add("inner");
+		// 		this.outer = document.createElement("div");
+		// 		this.outer.classList.add("outer");
+		// 		this.key_wrapper = document.createElement("div");
+		// 		this.key_wrapper.classList.add("key");
+		// 		this.wrapper.append(this.inner, this.outer, this.key_wrapper);
+		// 		this.wrapper.style.top = this.top + "px";
+		// 		this.wrapper.style.left = this.left + "px";
+		// 		document.body.append(this.wrapper);
+
+		// 		const keys = ['Q', 'W', 'E', 'R', 'A', 'S', 'D', 'F'];
+		// 		this.key = keys[getRandomInt(0, keys.length - 1)];
+		// 		this.key_wrapper.textContent = this.key;
+
+		// 		this.animate();
+		// 	}
+
+		// 	catch() {
+		// 		if (!this.play) return;
+
+		// 		if (this.currentSize <= 350 && this.currentSize >= 280) {
+		// 			this.end("perfect");
+		// 		} else {
+		// 			this.end("bad");
+		// 		}
+		// 	}
+
+		// 	end(result = "bad") {
+		// 		if (!this.play) return;
+		// 		this.play = false;
+		// 		clearTimeout(this.failTimer);
+
+		// 		for (const ci in helper.circles) {
+		// 			if (helper.circles[ci] == this) helper.circles.splice(ci, 1);
+		// 		}
+
+		// 		this.result = document.createElement("div");
+		// 		this.result.classList.add("result");
+		// 		this.wrapper.append(this.result);
+
+		// 		if (result == "perfect") {
+		// 			this.wrapper.classList.add("perfect");
+		// 			this.result.textContent = "Perfect";
+		// 			helper.up_perfect();
+		// 		} else {
+		// 			this.wrapper.classList.add("bad");
+		// 			this.result.textContent = "Bad";
+		// 			helper.up_bad();
+		// 		}
+		// 		setTimeout(() => {
+		// 			this.wrapper.style.transition = "opacity 0.5s";
+		// 			this.wrapper.style.opacity = "0";
+		// 		}, 500);
+		// 		setTimeout(() => {
+		// 			this.wrapper.remove();
+		// 		}, 1000);
+		// 	}
+
+		// 	shrink(timestamp) {
+		// 		if (!this.play) return;
+		// 		if (!this.startTimestamp) this.startTimestamp = timestamp;
+		// 		this.progress = (timestamp - this.startTimestamp) / this.duration;
+		// 		this.currentSize = this.size - (this.size * Math.min(this.progress, 1));
+		// 		this.outer.style.width = this.currentSize + "px";
+		// 		this.outer.style.height = this.currentSize + "px";
+		// 		if (this.progress < 1) {
+		// 			this.animationId = requestAnimationFrame((timestamp) => this.shrink(timestamp));
+		// 	    }
+		// 	}
+		// 	animate() {
+		// 		this.animationId = requestAnimationFrame((timestamp) => this.shrink(timestamp));
+		// 	}
+		// }
+		
+
+		// class CrashHelper {
+		// 	constructor() {
+		// 		this.score_perfect = 0;
+		// 		this.score_bad = 0;
+
+		// 		this.$score = document.createElement("div");
+		// 		this.$score.setAttribute("id", "score");
+
+		// 		this.$score_perfect_wrapper = document.createElement("div");
+		// 		this.$score_perfect = document.createElement("span");
+		// 		this.$score_perfect_wrapper.append("Perfect: ", this.$score_perfect);
+		// 		this.$score_perfect.textContent = 0;
+		// 		this.$score_bad_wrapper = document.createElement("div");
+		// 		this.$score_bad = document.createElement("span");
+		// 		this.$score_bad_wrapper.append("Bad: ", this.$score_bad);
+		// 		this.$score_bad.textContent = 0;
+
+		// 		this.$score.append(this.$score_perfect_wrapper, this.$score_bad_wrapper);
+
+		// 		document.body.append(this.$score);
+
+		// 		this.circles = [];
+
+		// 		setTimeout(() => {
+		// 			this.next();
+		// 			setInterval(() => {
+		// 				this.next();
+		// 			}, 5800);
+		// 		}, 1000);
+		// 		this.setKeydown();
+		// 	}
+
+		// 	next() {
+		// 		this.newCircle();
+		// 		if (getRandomInt(0, 2) == 0) {
+		// 			setTimeout(() => {
+		// 				this.newCircle();
+		// 			}, 250);
+		// 		}
+		// 		// setTimeout(() => { this.next(); }, 5800);
+		// 	}
+
+		// 	newCircle() {
+
+		// 		let x = getRandomInt(600, window.innerWidth - 600);
+		// 		let y = getRandomInt(600, window.innerHeight - 600);
+		// 		const prevCircle = this.circles[0];
+		// 		if (prevCircle) {
+		// 			while (calculateDistance(x, y, prevCircle.left, prevCircle.top) < 500) {
+		// 				x = getRandomInt(600, window.innerWidth - 600);
+		// 				y = getRandomInt(600, window.innerHeight - 600);
+		// 			}
+		// 		}
+		// 		const circle = new Circle(x, y);
+		// 		this.circles.push(circle);
+		// 		circle.failTimer = setTimeout(() => {
+		// 			circle.end("bad");
+		// 		}, circle.duration);
+		// 	}
+
+		// 	setKeydown() {
+		// 		const keys = ['Q', 'W', 'E', 'R', 'A', 'S', 'D', 'F'];
+		// 		document.addEventListener('keydown', (event) => {
+		// 			if (!this.circles.length) return;
+		// 			const pressedKey = event.key.toUpperCase();
+		// 			const nextCircle = this.circles[0];
+		// 			if (keys.includes(pressedKey)) {
+		// 				if (nextCircle.key == pressedKey) nextCircle.catch();
+		// 				else nextCircle.end("bad");
+		// 			}
+		// 		});
+		// 	}
+
+		// 	up_perfect() {
+		// 		this.score_perfect++;
+		// 		this.$score_perfect.textContent = this.score_perfect;
+		// 	}
+
+		// 	up_bad() {
+		// 		this.score_bad++;
+		// 		this.$score_bad.textContent = this.score_bad;
+		// 	}
+		// }
+
+		// const helper = new CrashHelper();
 	</script>
 </body>
 </html>

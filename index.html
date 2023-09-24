@@ -113,6 +113,7 @@
 			}
 		}
 	</style>
+	<script src="./anime.min.js"></script>
 </head>
 <body>
 	<!-- <div class="beat">
@@ -136,7 +137,7 @@
 		}
 
 		class Beat {
-			constructor(top, left) {
+			constructor({ delay, top, left }) {
 				this.playing = true;
 				this.size = 100;
 				this.startTimestamp = null;
@@ -158,6 +159,20 @@
 				this.elements.key.textContent = this.key;
 				this.elements.beat.append(this.elements.inner, this.elements.outer, this.elements.key);
 				document.body.append(this.elements.beat);
+
+				// this.animation = anime({
+				// 	targets: this.elements.outer,
+				// 	width: 0,
+				// 	height: 0,
+				// 	delay,
+				// 	duration: 1500,
+				// 	autoplay: true,
+				// 	easing: 'linear',
+				// 	complete: (anim) => {
+				// 		this.end("Bad");
+				// 		// completeLogEl.value = 'completed : ' + anim.completed;
+				// 	}
+				// });
 			}
 
 			end(result) {
@@ -168,13 +183,25 @@
 				this.elements.beat.classList.add(result.toLowerCase());
 				this.elements.beat.append(resultElement);
 
-				setTimeout(() => {
-					this.elements.beat.style.transition = "opacity 0.5s";
-					this.elements.beat.style.opacity = "0";
-				}, 500);
-				setTimeout(() => {
-					this.elements.beat.remove();
-				}, 1000);
+				this.animation.pause();
+				this.animation = anime({
+					targets: this.elements.beat,
+					opacity: 0,
+					duration: 500,
+					autoplay: true,
+					easing: 'linear',
+					complete: (anim) => {
+						this.elements.beat.remove();
+					}
+				});
+
+				// setTimeout(() => {
+				// 	this.elements.beat.style.transition = "opacity 0.5s";
+				// 	this.elements.beat.style.opacity = "0";
+				// }, 500);
+				// setTimeout(() => {
+				// 	this.elements.beat.remove();
+				// }, 1000);
 			}
 
 			bad() {
@@ -200,8 +227,9 @@
 		class Helper {
 			constructor() {
 				this.playing = true;
+				this.timeline = anime.timeline();
 				this.beats = [];
-				this.animate();
+				// this.animate();
 
 				document.addEventListener('keydown', (event) => { this.onKeydown(event); });
 
@@ -242,9 +270,9 @@
 
 				setTimeout(() => {
 					this.next();
-					setInterval(() => {
-						this.next();
-					}, 5800);
+					// setInterval(() => {
+					// 	this.next();
+					// }, 5800);
 				}, 1000);
 			}
 
@@ -255,20 +283,30 @@
 			}
 
 			onKeydown(event) {
-				// console.log("onKeyDown");
-				if (!this.beats.length) return;
 				const pressedKey = event.key.toUpperCase();
+				console.log("onKeyDown", pressedKey);
+				if (pressedKey == "ESCAPE") {
+					if (this.playing) {
+						this.pause();
+					} else {
+						this.play();
+					}
+					return;
+				}
+				if (!this.beats.length || !this.playing) return;
 				const beat = this.getCurrentBeat();
 				if (!beat) return;
 				if (KEYS.includes(pressedKey)) {
 					// console.log("onKeyDown includes", beat.key, pressedKey, beat.size);
 					if (beat.key == pressedKey) {
-						if (beat.size <= 55 && beat.size >= 47) {
+						const size = beat.animation.progress;
+						console.log(beat.animation.progress);
+						if (size <= 55 && size >= 47) {
 							beat.perfect();
 							this.score.perfect++;
 							this.updateScore();
 							return;
-						} else if (beat.size <= 60 && beat.size >= 45) {
+						} else if (size <= 60 && size >= 45) {
 							beat.good();
 							this.score.good++;
 							this.updateScore();
@@ -296,14 +334,19 @@
 
 			next() {
 				this.newBeat();
-				if (getRandomInt(0, 2) == 0) {
-					setTimeout(() => {
-						this.newBeat();
-					}, 250);
+				// if (getRandomInt(0, 2) == 0) {
+				if (true) {
+					this.newBeat();
+					this.timeline.add({
+						delay: 250,
+					});
+					// setTimeout(() => {
+					// 	this.newBeat(250);
+					// }, 250);
 				}
 			}
 
-			newBeat() {
+			newBeat(delay = 0) {
 				let top = getRandomInt(0, window.innerHeight - SIZE);
 				let left = getRandomInt(0, window.innerWidth - SIZE);
 				const prevBeat = this.getCurrentBeat();
@@ -313,7 +356,20 @@
 						left = getRandomInt(0, window.innerWidth - SIZE);
 					}
 				}
-				const beat = new Beat(top, left);
+				const beat = new Beat({ delay, top, left });
+				beat.animation = anime({
+					targets: beat.elements.outer,
+					width: 0,
+					height: 0,
+					duration: 1500,
+					autoplay: true,
+					easing: 'linear',
+					complete: (anim) => {
+						beat.end("Bad");
+					}
+				});
+				this.timeline.add(beat.animation);
+					
 				this.beats.push(beat);
 			}
 
@@ -343,7 +399,18 @@
 
 			play() {
 				this.playing = true;
-				this.animate();
+				this.timeline.play();
+				for (const beat of this.beats) {
+					beat.animation.play();
+				}
+			}
+			pause() {
+				this.playing = false;
+				this.pausedTimestamp = new Date().getTime();
+				this.timeline.pause();
+				for (const beat of this.beats) {
+					beat.animation.pause();
+				}
 			}
 
 		}

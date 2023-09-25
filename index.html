@@ -10,27 +10,27 @@
 
 		div { box-sizing: border-box; }
 		.beat { position: absolute; width: 600px; height: 600px; }
-		.beat > *, .beat:before { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); transition: border-color 0.1s; }
-		.beat:before { display: block; content: ""; }
+		.beat > * { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); transition: border-color 0.1s; }
 		.beat .inner { width: 50%; height: 50%; border: 18px solid #7fffff; border-radius: 50%; }
 		.beat .outer { width: 100%; height: 100%; border: 6px solid #59e4ff; border-radius: 50%; }
 		.beat .key { width: 60px; height: 60px; background-color: #f4e7c6; color: #7d5a1c; font-weight: bold; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 34px; }
 		.beat .result { color: white; top: 50%; padding-top: 50%; font-weight: bold; display: flex; justify-content: center; align-items: center; font-size: 54px; }
+		.beat .resultRing { border-width: 10px; border-style: solid; border-radius: 50%; width: 50%; height: 50%; }
 		
 		.beat.bad .result { text-shadow: 0px 0px 5px red,0px 0px 10px red,0px 0px 15px red; }
 		.beat.bad .inner { border-color: rgb(206, 98, 98); }
 		.beat.bad .outer { border-color: red; }
 
 		.beat.good .result { text-shadow: 0px 0px 5px #7fffff,0px 0px 10px #7fffff,0px 0px 15px #7fffff; }
-		.beat.good:before { border: 10px solid #59e4ff; border-radius: 50%; width: 50%; height: 50%; animation: fadeOutScale 0.5s normal forwards; }
+		.beat.good .resultRing { border-color: #59e4ff; }
 
 		.beat.perfect .result { text-shadow: 0px 0px 5px rgba(125, 90, 28, 1),0px 0px 10px rgba(125, 90, 28, 1),0px 0px 15px rgba(125, 90, 28, 1); }
 		.beat.perfect .inner { border-color: #e2a555; }
 		.beat.perfect .outer { border-color: #e3b274; }
-		.beat.perfect:before { border: 10px solid #e3b274; border-radius: 50%; width: 50%; height: 50%; animation: fadeOutScale 0.5s normal forwards; }
+		.beat.perfect .resultRing { border-color: #e3b274; }
 
 
-		.score { position: absolute; top: 0; left: 0; font-size: 24px; padding: 20px; }
+		.score { position: fixed; top: 0; left: 0; font-size: 24px; padding: 10px 20px; margin: 10px; z-index: 1000; color: white; background-color: rgba(0, 0, 0, 0.8); }
 		.score > * { display: flex; }
 		.score .label { width: 120px; text-align: right; padding-right: 20px; }
 		.score .count { font-weight: bold; }
@@ -54,15 +54,6 @@
 		}
 		.circle.perfect .outer {
 			border-color: #e3b274;
-		}
-		.circle.perfect:before {
-			display: block;
-			content: "";
-			position: absolute; top: 0; left: 0; transform: translate(-50%, -50%);
-			border: 10px solid #e3b274;
-			border-radius: 50%;
-			width: 300px; height: 300px;
-			animation: fadeOutScale 0.5s;
 		}
 
 		.circle .key {
@@ -99,29 +90,86 @@
 			font-weight: bold;
 			padding: 20px;
 		}
-		@keyframes fadeOutScale {
-			from {
-				opacity: 1;
-				width: 300px;
-				height: 300px;
-			}
 
-			to {
-				opacity: 0;
-				width: 500px;
-				height: 500px;
-			}
+		.overlay {
+			position: fixed;
+			top: 0;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			background: rgba(0, 0, 0, 0.8);
+			z-index: 999;
+			color: white;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-size: 24px;
+			flex-direction: column;
+		}
+		.overlay div {
+			margin: 20px 0;
+		}
+		.overlay div.small {
+			font-size: 16px;
+		}
+		.overlay div label {
+			margin-left: 40px;
+		}
+		.overlay div label:first-of-type {
+			margin-left: 0;
+		}
+		.overlay p {
+			margin: 10px 0 4px 0;
+		}
+		.overlay.hide {
+			display: none;
+		}
+
+		.hidden {
+			position: absolute;
+			top: 0;
+			width: 0;
+			opacity: 0;
+			font-size: 0;
+		}
+
+		#background-video {
+			display: none;
+			width: 100vw;
+			height: 100vh;
+			object-fit: cover;
+			position: fixed;
+			left: 0;
+			right: 0;
+			top: 0;
+			bottom: 0;
+			z-index: -1;
 		}
 	</style>
 	<script src="./anime.min.js"></script>
 </head>
 <body>
-	<!-- <div class="beat">
-		<div class="inner"></div>
-		<div class="outer"></div>
-	</div> -->
+	<h1 class="hidden">카멘 격돌 연습</h1>
+	<div class="overlay">
+		<h2>Paused</h2>
+		<div class="small">ESC 키를 눌러 일시정지 해제</div>
+
+		<div>
+			<p>난이도</p>
+			<label><input type="radio" name="difficulty" value="normal">Normal</label>
+			<label><input type="radio" name="difficulty" value="hard" checked>Hard</label>
+		</div>
+
+		<div>
+			<label><input type="checkbox" name="background" value="Y">배경 표시</label>
+		</div>
+	</div>
+	<video id="background-video" autoplay loop muted>
+		<source src="./video.mp4" type="video/mp4">
+	</video>
 	<script>
-		const KEYS = ['Q', 'W', 'E', 'R', 'A', 'S', 'D', 'F'];
+		const KEYS_NORMAL = ['Q', 'W', 'E', 'R'];
+		const KEYS_HARD = ['Q', 'W', 'E', 'R', 'A', 'S', 'D', 'F'];
 		const SIZE = 600;
 
 		function getRandomInt(min, max) {
@@ -137,11 +185,20 @@
 		}
 
 		class Beat {
-			constructor({ delay, top, left }) {
-				this.playing = true;
-				this.size = 100;
-				this.startTimestamp = null;
-				this.key = KEYS[getRandomInt(0, KEYS.length - 1)];
+			constructor({ parent, delay, top, left }) {
+				this.parent = parent;
+				this.playing = true; // playing, done
+				if (this.parent.options.difficulty == "hard") {
+					console.log("hard");
+					this.key = KEYS_HARD[getRandomInt(0, KEYS_HARD.length - 1)];
+				} else {
+					this.key = KEYS_NORMAL[getRandomInt(0, KEYS_NORMAL.length - 1)];
+				}
+				this.animations = {
+					beat: null,
+					outer: null,
+					resultRing: null,
+				};
 
 				// console.log("New Beat", top, left);
 				this.top = top;
@@ -160,31 +217,31 @@
 				this.elements.beat.append(this.elements.inner, this.elements.outer, this.elements.key);
 				document.body.append(this.elements.beat);
 
-				// this.animation = anime({
-				// 	targets: this.elements.outer,
-				// 	width: 0,
-				// 	height: 0,
-				// 	delay,
-				// 	duration: 1500,
-				// 	autoplay: true,
-				// 	easing: 'linear',
-				// 	complete: (anim) => {
-				// 		this.end("Bad");
-				// 		// completeLogEl.value = 'completed : ' + anim.completed;
-				// 	}
-				// });
+				this.animations.outer = anime({
+					targets: this.elements.outer,
+					width: 0,
+					height: 0,
+					delay,
+					duration: 1500,
+					autoplay: true,
+					easing: 'linear',
+					complete: (anim) => {
+						this.bad();
+						// completeLogEl.value = 'completed : ' + anim.completed;
+					}
+				});
 			}
 
 			end(result) {
 				this.playing = false;
+				this.animations.outer.pause();
 
 				const resultElement = Object.assign(document.createElement("div"), {className: "result"});
 				resultElement.textContent = result;
 				this.elements.beat.classList.add(result.toLowerCase());
 				this.elements.beat.append(resultElement);
 
-				this.animation.pause();
-				this.animation = anime({
+				this.animations.beat = anime({
 					targets: this.elements.beat,
 					opacity: 0,
 					duration: 500,
@@ -194,6 +251,20 @@
 						this.elements.beat.remove();
 					}
 				});
+
+				if (result == "Good" || result == "Perfect") {
+					const resultRingElement = Object.assign(document.createElement("div"), {className: "resultRing"});
+					this.elements.beat.append(resultRingElement);
+					this.animations.resultRing = anime({
+						targets: resultRingElement,
+						opacity: 0,
+						width: "100%",
+						height: "100%",
+						duration: 500,
+						autoplay: true,
+						easing: 'linear',
+					});
+				}
 
 				// setTimeout(() => {
 				// 	this.elements.beat.style.transition = "opacity 0.5s";
@@ -206,12 +277,29 @@
 
 			bad() {
 				this.end("Bad");
+				this.parent.score.bad++;
+				this.parent.updateScore();
 			}
 			good() {
 				this.end("Good");
+				this.parent.score.good++;
+				this.parent.updateScore();
 			}
 			perfect() {
 				this.end("Perfect");
+				this.parent.score.perfect++;
+				this.parent.updateScore();
+			}
+
+			play() {
+				if (this.animations.beat) this.animations.beat.play();
+				if (this.animations.resultRing) this.animations.resultRing.play();
+				if (this.playing) this.animations.outer.play();
+			}
+			pause() {
+				if (this.animations.beat) this.animations.beat.pause();
+				if (this.animations.resultRing) this.animations.resultRing.pause();
+				this.animations.outer.pause();
 			}
 
 			// nextFrame(timestamp) {
@@ -227,9 +315,15 @@
 		class Helper {
 			constructor() {
 				this.playing = true;
-				this.timeline = anime.timeline();
 				this.beats = [];
-				// this.animate();
+				this.lastTimestamp = 0;
+				this.frames = 0;
+				this.timeline = [];
+				this.options = {
+					get difficulty() {
+						return document.querySelector("[name='difficulty']:checked").value;
+					}
+				};
 
 				document.addEventListener('keydown', (event) => { this.onKeydown(event); });
 
@@ -247,13 +341,27 @@
 					count_bad: Object.assign(document.createElement("span"), {className: "count", textContent: 0}),
 					count_good: Object.assign(document.createElement("span"), {className: "count", textContent: 0}),
 					count_perfect: Object.assign(document.createElement("span"), {className: "count", textContent: 0}),
+
+					overlay: document.querySelector(".overlay"),
+					background_video: document.querySelector("#background-video"),
 				};
+
+				document.querySelector("[name='background']").addEventListener('change', (event) => {
+					this.elements.background_video.style.display = event.target.checked ? "block" : "none";
+				});
 
 				this.elements.bad.append(Object.assign(document.createElement("div"), {className: "label", textContent: "Bad"}), this.elements.count_bad);
 				this.elements.good.append(Object.assign(document.createElement("div"), {className: "label", textContent: "Good"}), this.elements.count_good);
 				this.elements.perfect.append(Object.assign(document.createElement("div"), {className: "label", textContent: "Perfect"}), this.elements.count_perfect);
 				this.elements.wrap.append(this.elements.perfect, this.elements.good, this.elements.bad);
 				document.body.append(this.elements.wrap);
+
+				// this.elements.overlay.append(Object.assign(document.createElement("h1"), {textContent: "Paused"}));
+				// const label_difficulty_normal = Object.assign(document.createElement("label"));
+				// label_difficulty_normal.append(Object.assign(document.createElement("input"), {type: "radio"}), "Normal");
+				// this.elements.overlay.append(label_difficulty_normal);
+
+				// document.body.append(this.elements.overlay);
 
 				// 	if (!this.circles.length) return;
 				// 	const pressedKey = event.key.toUpperCase();
@@ -268,12 +376,16 @@
 				// 	this.beats.push(new Beat(300, 300));
 				// }, 1000);
 
-				setTimeout(() => {
+				this.animate();
+				this.setTImeline(1000, () => {
 					this.next();
-					// setInterval(() => {
-					// 	this.next();
-					// }, 5800);
-				}, 1000);
+				});
+				// setTimeout(() => {
+				// 	this.next();
+				// 	// setInterval(() => {
+				// 	// 	this.next();
+				// 	// }, 5800);
+				// }, 1000);
 			}
 
 			updateScore() {
@@ -296,31 +408,24 @@
 				if (!this.beats.length || !this.playing) return;
 				const beat = this.getCurrentBeat();
 				if (!beat) return;
+
+				const KEYS = this.options.difficulty == "hard" ? KEYS_HARD : KEYS_NORMAL;
+
 				if (KEYS.includes(pressedKey)) {
-					// console.log("onKeyDown includes", beat.key, pressedKey, beat.size);
 					if (beat.key == pressedKey) {
-						const size = beat.animation.progress;
-						console.log(beat.animation.progress);
+						const size = beat.animations.outer.progress;
 						if (size <= 55 && size >= 47) {
 							beat.perfect();
-							this.score.perfect++;
-							this.updateScore();
 							return;
 						} else if (size <= 60 && size >= 45) {
 							beat.good();
-							this.score.good++;
-							this.updateScore();
 							return;
 						} else {
 							beat.bad();
-							this.score.bad++;
-							this.updateScore();
 							return;
 						}
 					}
 					beat.bad();
-					this.score.bad++;
-					this.updateScore();
 					return;
 				}
 			}
@@ -332,18 +437,24 @@
 				return null;
 			}
 
+			setTImeline(delay, callback) {
+				this.timeline.push({
+					frame: this.frames + delay,
+					callback,
+				});
+			}
+
 			next() {
 				this.newBeat();
-				// if (getRandomInt(0, 2) == 0) {
-				if (true) {
-					this.newBeat();
-					this.timeline.add({
-						delay: 250,
+				if (getRandomInt(0, 2) == 0) {
+				// if (true) {
+					this.setTImeline(250, () => {
+						this.newBeat();
 					});
-					// setTimeout(() => {
-					// 	this.newBeat(250);
-					// }, 250);
 				}
+				this.setTImeline(5800, () => {
+					this.next();
+				});
 			}
 
 			newBeat(delay = 0) {
@@ -356,253 +467,52 @@
 						left = getRandomInt(0, window.innerWidth - SIZE);
 					}
 				}
-				const beat = new Beat({ delay, top, left });
-				beat.animation = anime({
-					targets: beat.elements.outer,
-					width: 0,
-					height: 0,
-					duration: 1500,
-					autoplay: true,
-					easing: 'linear',
-					complete: (anim) => {
-						beat.end("Bad");
-					}
-				});
-				this.timeline.add(beat.animation);
-					
+				const beat = new Beat({ parent: this, delay, top, left });
+				
 				this.beats.push(beat);
 			}
 
 			nextFrame(timestamp) {
-				// console.log("Helper nextFrame", timestamp);
-				for (const beatIdx in this.beats) {
-					// beat.nextFrame(timestamp);
-					const beat = this.beats[beatIdx];
-					if (!beat.playing) continue;
-					if (!beat.startTimestamp) beat.startTimestamp = timestamp;
-					const progress = (timestamp - beat.startTimestamp) / 1500;
-					beat.size = 100 - (100 * progress);
-					beat.elements.outer.style.width = beat.size + "%";
-					beat.elements.outer.style.height = beat.size + "%";
-
-					if (beat.size <= 0) {
-						beat.bad();
-						this.beats.splice(beatIdx, 1);
+				const elapsed = timestamp - this.lastTimestamp;
+				this.lastTimestamp = timestamp;
+				if (this.playing) {
+					this.frames += elapsed;
+					for (const timelineIdx in this.timeline) {
+						const timelineItem = this.timeline[timelineIdx];
+						if (this.frames >= timelineItem.frame) {
+							timelineItem.callback();
+							this.timeline.splice(timelineIdx, 1);
+						}
 					}
 				}
 				this.animate();
 			}
 			animate() {
-				if (!this.playing) return;
 				this.animationId = requestAnimationFrame((timestamp) => { this.nextFrame(timestamp); });
 			}
 
 			play() {
 				this.playing = true;
-				this.timeline.play();
+				this.elements.overlay.classList.add("hide");
+				this.elements.background_video.play();
 				for (const beat of this.beats) {
-					beat.animation.play();
+					beat.play();
 				}
 			}
 			pause() {
 				this.playing = false;
+				this.elements.overlay.classList.remove("hide");
+				this.elements.background_video.pause();
 				this.pausedTimestamp = new Date().getTime();
-				this.timeline.pause();
 				for (const beat of this.beats) {
-					beat.animation.pause();
+					beat.pause();
 				}
 			}
 
 		}
 
 		const BeatHelper = new Helper();
-		
-		// function getRandomInt(min, max) {
-		// 	min = Math.ceil(min);
-		// 	max = Math.floor(max);
-		// 	return Math.floor(Math.random() * (max - min + 1)) + min;
-		// }
-
-		// function calculateDistance(x1, y1, x2, y2) {
-		// 	const deltaX = x2 - x1;
-		// 	const deltaY = y2 - y1;
-		// 	return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-		// }
-
-		// class Circle {
-		// 	constructor(x, y) {
-		// 		this.play = true;
-		// 		this.size = 600;
-		// 		this.currentSize;
-		// 		this.duration = 1500;
-		// 		this.progress;
-
-		// 		this.top = y;
-		// 		this.left = x;
-
-		// 		this.wrapper = document.createElement("div");
-		// 		this.wrapper.classList.add("circle");
-		// 		this.inner = document.createElement("div");
-		// 		this.inner.classList.add("inner");
-		// 		this.outer = document.createElement("div");
-		// 		this.outer.classList.add("outer");
-		// 		this.key_wrapper = document.createElement("div");
-		// 		this.key_wrapper.classList.add("key");
-		// 		this.wrapper.append(this.inner, this.outer, this.key_wrapper);
-		// 		this.wrapper.style.top = this.top + "px";
-		// 		this.wrapper.style.left = this.left + "px";
-		// 		document.body.append(this.wrapper);
-
-		// 		const keys = ['Q', 'W', 'E', 'R', 'A', 'S', 'D', 'F'];
-		// 		this.key = keys[getRandomInt(0, keys.length - 1)];
-		// 		this.key_wrapper.textContent = this.key;
-
-		// 		this.animate();
-		// 	}
-
-		// 	catch() {
-		// 		if (!this.play) return;
-
-		// 		if (this.currentSize <= 350 && this.currentSize >= 280) {
-		// 			this.end("perfect");
-		// 		} else {
-		// 			this.end("bad");
-		// 		}
-		// 	}
-
-		// 	end(result = "bad") {
-		// 		if (!this.play) return;
-		// 		this.play = false;
-		// 		clearTimeout(this.failTimer);
-
-		// 		for (const ci in helper.circles) {
-		// 			if (helper.circles[ci] == this) helper.circles.splice(ci, 1);
-		// 		}
-
-		// 		this.result = document.createElement("div");
-		// 		this.result.classList.add("result");
-		// 		this.wrapper.append(this.result);
-
-		// 		if (result == "perfect") {
-		// 			this.wrapper.classList.add("perfect");
-		// 			this.result.textContent = "Perfect";
-		// 			helper.up_perfect();
-		// 		} else {
-		// 			this.wrapper.classList.add("bad");
-		// 			this.result.textContent = "Bad";
-		// 			helper.up_bad();
-		// 		}
-		// 		setTimeout(() => {
-		// 			this.wrapper.style.transition = "opacity 0.5s";
-		// 			this.wrapper.style.opacity = "0";
-		// 		}, 500);
-		// 		setTimeout(() => {
-		// 			this.wrapper.remove();
-		// 		}, 1000);
-		// 	}
-
-		// 	shrink(timestamp) {
-		// 		if (!this.play) return;
-		// 		if (!this.startTimestamp) this.startTimestamp = timestamp;
-		// 		this.progress = (timestamp - this.startTimestamp) / this.duration;
-		// 		this.currentSize = this.size - (this.size * Math.min(this.progress, 1));
-		// 		this.outer.style.width = this.currentSize + "px";
-		// 		this.outer.style.height = this.currentSize + "px";
-		// 		if (this.progress < 1) {
-		// 			this.animationId = requestAnimationFrame((timestamp) => this.shrink(timestamp));
-		// 	    }
-		// 	}
-		// 	animate() {
-		// 		this.animationId = requestAnimationFrame((timestamp) => this.shrink(timestamp));
-		// 	}
-		// }
-		
-
-		// class CrashHelper {
-		// 	constructor() {
-		// 		this.score_perfect = 0;
-		// 		this.score_bad = 0;
-
-		// 		this.$score = document.createElement("div");
-		// 		this.$score.setAttribute("id", "score");
-
-		// 		this.$score_perfect_wrapper = document.createElement("div");
-		// 		this.$score_perfect = document.createElement("span");
-		// 		this.$score_perfect_wrapper.append("Perfect: ", this.$score_perfect);
-		// 		this.$score_perfect.textContent = 0;
-		// 		this.$score_bad_wrapper = document.createElement("div");
-		// 		this.$score_bad = document.createElement("span");
-		// 		this.$score_bad_wrapper.append("Bad: ", this.$score_bad);
-		// 		this.$score_bad.textContent = 0;
-
-		// 		this.$score.append(this.$score_perfect_wrapper, this.$score_bad_wrapper);
-
-		// 		document.body.append(this.$score);
-
-		// 		this.circles = [];
-
-		// 		setTimeout(() => {
-		// 			this.next();
-		// 			setInterval(() => {
-		// 				this.next();
-		// 			}, 5800);
-		// 		}, 1000);
-		// 		this.setKeydown();
-		// 	}
-
-		// 	next() {
-		// 		this.newCircle();
-		// 		if (getRandomInt(0, 2) == 0) {
-		// 			setTimeout(() => {
-		// 				this.newCircle();
-		// 			}, 250);
-		// 		}
-		// 		// setTimeout(() => { this.next(); }, 5800);
-		// 	}
-
-		// 	newCircle() {
-
-		// 		let x = getRandomInt(600, window.innerWidth - 600);
-		// 		let y = getRandomInt(600, window.innerHeight - 600);
-		// 		const prevCircle = this.circles[0];
-		// 		if (prevCircle) {
-		// 			while (calculateDistance(x, y, prevCircle.left, prevCircle.top) < 500) {
-		// 				x = getRandomInt(600, window.innerWidth - 600);
-		// 				y = getRandomInt(600, window.innerHeight - 600);
-		// 			}
-		// 		}
-		// 		const circle = new Circle(x, y);
-		// 		this.circles.push(circle);
-		// 		circle.failTimer = setTimeout(() => {
-		// 			circle.end("bad");
-		// 		}, circle.duration);
-		// 	}
-
-		// 	setKeydown() {
-		// 		const keys = ['Q', 'W', 'E', 'R', 'A', 'S', 'D', 'F'];
-		// 		document.addEventListener('keydown', (event) => {
-		// 			if (!this.circles.length) return;
-		// 			const pressedKey = event.key.toUpperCase();
-		// 			const nextCircle = this.circles[0];
-		// 			if (keys.includes(pressedKey)) {
-		// 				if (nextCircle.key == pressedKey) nextCircle.catch();
-		// 				else nextCircle.end("bad");
-		// 			}
-		// 		});
-		// 	}
-
-		// 	up_perfect() {
-		// 		this.score_perfect++;
-		// 		this.$score_perfect.textContent = this.score_perfect;
-		// 	}
-
-		// 	up_bad() {
-		// 		this.score_bad++;
-		// 		this.$score_bad.textContent = this.score_bad;
-		// 	}
-		// }
-
-		// const helper = new CrashHelper();
+		BeatHelper.pause();
 	</script>
 </body>
 </html>

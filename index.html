@@ -446,12 +446,9 @@
 
 			next() {
 				this.newBeat();
-				if (getRandomInt(0, 2) == 0) {
-				// if (true) {
-					this.setTImeline(250, () => {
-						this.newBeat();
-					});
-				}
+				this.setTImeline(250, () => {
+					this.newBeat();
+				});
 				this.setTImeline(5800, () => {
 					this.next();
 				});
